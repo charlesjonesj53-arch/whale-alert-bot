@@ -1,19 +1,13 @@
 name: Whale Alert Bot v4
 
 on:
+  workflow_dispatch:        # allows manual or immediate trigger
   schedule:
-    - cron: '*/5 * * * *'  # triggers every 5 minutes
-  workflow_dispatch:        # optional manual trigger
+    - cron: '*/5 * * * *'  # triggers every 5 minutes automatically
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    # Retry job up to 3 times if it fails
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        attempt: [1, 2, 3]
 
     steps:
       - name: Checkout repo
@@ -31,12 +25,11 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Whale Bot with Retry
+      - name: Run Whale Bot
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.CHAT_ID }}
           MIN_USD: ${{ secrets.MIN_USD }}
         run: |
           source venv/bin/activate
-          echo "Attempt ${{ matrix.attempt }} running..."
           python whale_bot.py
