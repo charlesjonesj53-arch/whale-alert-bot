@@ -1,0 +1,40 @@
+name: Whale Alert Bot v4
+
+on:
+  workflow_dispatch:    # manual run
+  schedule:
+    - cron: '*/5 * * * *'  # triggers every 5 minutes
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run Whale Bot with Auto-Restart
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.CHAT_ID }}
+        MIN_USD: ${{ secrets.MIN_USD }}
+      run: |
+        source venv/bin/activate
+        # run bot in a timed while loop for ~5 minutes
+        END=$((SECONDS+290))  # 290 sec = 4.8 min
+        while [ $SECONDS -lt $END ]; do
+          python whale_bot.py
+          sleep 10  # small delay between runs
+        done
