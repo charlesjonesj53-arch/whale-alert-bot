@@ -1,0 +1,54 @@
+name: Whale Alert Bot v5.5
+
+on:
+  workflow_dispatch:        # manual run
+  schedule:
+    - cron: "*/5 * * * *"   # auto every 5 minutes
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Whale Bot + Telegram Log
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.CHAT_ID }}
+          MIN_USD: ${{ secrets.MIN_USD }}
+        run: |
+          source venv/bin/activate
+          TIMESTAMP=$(date)
+
+          echo "🐋 Running Whale Bot v5.5 at $TIMESTAMP..."
+          python whale_bot_wrapper.py
+          STATUS=$?
+
+          if [ $STATUS -eq 0 ]; then
+            MSG="✅ Whale Bot v5.5 succeeded at $TIMESTAMP"
+          else
+            MSG="⚠ Whale Bot v5.5 failed with exit code $STATUS at $TIMESTAMP"
+          fi
+
+          python - <<EOF
+import os, requests
+token = os.getenv("TELEGRAM_BOT_TOKEN")
+chat_id = os.getenv("TELEGRAM_CHAT_ID")
+message = os.getenv("MSG", "${MSG}")
+requests.post(f"https://api.telegram.org/bot{token}/sendMessage", data={"chat_id": chat_id, "text": message})
+EOF
